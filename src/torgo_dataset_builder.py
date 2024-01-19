@@ -1,46 +1,63 @@
 import os
 import csv
+import shutil
 import argparse
+from collections import deque
 
 
-def build_dataset(input_directory, transcriptions_dir, manifest_file):
-    audio_files = [f for f in os.listdir(input_directory) if f.endswith(".wav")]
+def build_dataset(
+    start_path,
+    output,
+):
+    visited = set()
+    queue = deque([start_path])
 
-    with open(manifest_file, "w", newline="") as csvfile:
-        manifest_writer = csv.writer(csvfile)
-        manifest_writer.writerow(["file_name", "transcription"])
+    while queue:
+        current_path = queue.popleft()
+        if current_path in visited:
+            continue
 
-        for audio_file in audio_files:
-            base_filename = os.path.splitext(audio_file)[0]
-            transcription_file = base_filename + ".txt"
+        visited.add(current_path)
+        for entry in os.scandir(current_path):
+            if entry.is_dir():
+                if entry.name.startswith("Session"):
+                    process_session_directory(entry.path, output, "metadata.csv")
+                queue.append(entry.path)
 
-            if transcription_file in os.listdir(transcriptions_dir):
-                audio_path = os.path.join(input_directory, audio_file)
-                transcription_path = os.path.join(
-                    transcriptions_dir, transcription_file
-                )
 
-                with open(transcription_path, "r", encoding="utf-8") as f:
-                    transcription_content = f.read().strip()
+def process_session_directory(session_path, output, metadata_file):
+    wav_path = os.path.join(session_path, "wav_arrayMic")
+    prompts_path = os.path.join(session_path, "prompts")
 
-                if (
-                    not transcription_content.startswith("[")
-                    and "input/" not in transcription_content
-                ):
-                    clean_transcription_content = transcription_content.replace('"', "")
-                    manifest_writer.writerow([audio_path, clean_transcription_content])
-                else:
-                    file_path = os.path.join("data", audio_file)
+    if not os.path.exists(wav_path) or not os.path.exists(prompts_path):
+        return
 
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
+    for wav_file in os.listdir(wav_path):
+        if wav_file.endswith(".wav"):
+            new_wav_name = os.path.join(
+                output, os.path.basename(session_path) + "_" + wav_file
+            )
 
-            else:
-                print(f"Transcription file for {audio_file} not found.")
+            txt_file = os.path.splitext(wav_file)[0] + ".txt"
+            txt_file_path = os.path.join(prompts_path, txt_file)
+
+            if os.path.exists(txt_file_path):
+                with open(txt_file_path, "r") as file:
+                    content = file.read().strip()
+                    with open(
+                        metadata_file, "a", newline="", encoding="utf-8"
+                    ) as csv_file:
+                        if not content.startswith("[") and "input/" not in content:
+                            content = content.replace('"', "")
+                            shutil.copy(os.path.join(wav_path, wav_file), new_wav_name)
+                            writer = csv.writer(csv_file)
+                            writer.writerow([new_wav_name, content])
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Process some paths.")
+    parser = argparse.ArgumentParser(
+        description="Build a dataset for ASR training using TORGO dataset. Code: https://github.com/jmaczan/asr-dysarthria. The original TORGO database: http://www.cs.toronto.edu/~complingweb/data/TORGO/torgo.html"
+    )
     parser.add_argument(
         "--input", type=str, help="Path to the original TORGO dataset directory"
     )
@@ -50,14 +67,13 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    directory_path = args.directory
+    input_path = args.input
     output_path = args.output
 
-    # Your code here using directory_path and output_path
-
-    audio_dir = "data"
-    transcriptions_dir = "transcriptions"
-    manifest_file = "metadata.csv"
-
-    build_dataset(audio_dir, transcriptions_dir, manifest_file)
-    print("Dataset created successfully")
+    if input_path is not None and output_path is not None:
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+        build_dataset(input_path, output_path)
+        print("Done 😺")
+    else:
+        parser.print_help()
