@@ -9,20 +9,6 @@ def build_dataset(input_path, output_path, **kwargs):
     visited = set()
     queue = deque([input_path])
 
-    clear_output_directory = kwargs.get("clear_output_directory", False)
-    if clear_output_directory:
-        print("Existing content of output directory is being removed")
-        if os.path.exists(output_path):
-            for filename in os.listdir(output_path):
-                file_path = os.path.join(output_path, filename)
-                try:
-                    if os.path.isfile(file_path) or os.path.islink(file_path):
-                        os.unlink(file_path)
-                    elif os.path.isdir(file_path):
-                        shutil.rmtree(file_path)
-                except Exception as e:
-                    print(f"Failed to delete {file_path}. Reason: {e}")
-
     while queue:
         current_path = queue.popleft()
         if current_path in visited:
@@ -37,8 +23,13 @@ def build_dataset(input_path, output_path, **kwargs):
 
 
 def process_session_directory(single_input_path, output_path, **kwargs):
-    metadata_file = kwargs.get("param1", "metadata.csv")
-    metadata_path = os.path.join(output_path, metadata_file)
+    metadata_path = os.path.join(
+        output_path, kwargs.get("metadata_file", "metadata.csv")
+    )
+
+    huggingface_format = kwargs.get("huggingface_format", False)
+
+    audio_output_path = kwargs.get("audio_output_path", output_path)
 
     wav_path = os.path.join(single_input_path, "wav_arrayMic")
     prompts_path = os.path.join(single_input_path, "prompts")
@@ -48,12 +39,16 @@ def process_session_directory(single_input_path, output_path, **kwargs):
 
     for wav_file in os.listdir(wav_path):
         if wav_file.endswith(".wav"):
-            new_wav_name = os.path.join(
-                os.path.basename(single_input_path) + "_" + wav_file
+            new_wav_name = (
+                os.path.join(os.path.basename(single_input_path) + "_" + wav_file)
+                if not huggingface_format
+                else os.path.join(
+                    "data", os.path.basename(single_input_path) + "_" + wav_file
+                )
             )
 
             wav_output_path = os.path.join(
-                output_path, os.path.basename(single_input_path) + "_" + wav_file
+                audio_output_path, os.path.basename(single_input_path) + "_" + wav_file
             )
 
             txt_file = os.path.splitext(wav_file)[0] + ".txt"
@@ -89,14 +84,22 @@ if __name__ == "__main__":
     parser.add_argument(
         "--clear-output-dir",
         action="store_true",
-        help="(Optional) Use it if you want to remove existing content of output directory",
+        help="(Optional) Remove existing content of output directory",
+    )
+
+    parser.add_argument(
+        "--huggingface-format",
+        action="store_true",
+        help="(Optional) Put output wav files into additional data directory",
     )
 
     args = parser.parse_args()
 
     input_path = args.input
     output_path = args.output
+
     clear_output_directory = args.clear_output_dir
+    huggingface_format = args.huggingface_format
 
     if input_path is None or output_path is None:
         parser.print_help()
@@ -104,7 +107,34 @@ if __name__ == "__main__":
 
     if not os.path.exists(output_path):
         os.makedirs(output_path)
+
+    if clear_output_directory:
+        print("Existing content of output directory is being removed")
+        if os.path.exists(output_path):
+            for filename in os.listdir(output_path):
+                file_path = os.path.join(output_path, filename)
+                try:
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.unlink(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                except Exception as e:
+                    print(f"Failed to delete {file_path}. Reason: {e}")
+
+    output_data_path = os.path.join(output_path, "data")
+
+    if huggingface_format and not os.path.exists(output_data_path):
+        os.makedirs(output_data_path)
+        audio_output_path = output_data_path
+    else:
+        audio_output_path = None
+
     build_dataset(
-        input_path, output_path, clear_output_directory=clear_output_directory
+        input_path,
+        output_path,
+        audio_output_path=audio_output_path,
+        clear_output_directory=clear_output_directory,
+        huggingface_format=huggingface_format,
     )
+
     print("Dataset build done 😺")
