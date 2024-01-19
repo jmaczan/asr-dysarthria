@@ -6,7 +6,7 @@ Automatic speech recognition for people with dysarthria
 
 `python src/train.py`
 
-## Building TORGO dataset
+## Building the TORGO dataset
 
 `python src/torgo_dataset_builder.py`
 
