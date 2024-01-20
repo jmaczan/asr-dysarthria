@@ -1,4 +1,5 @@
 import os
+import re
 import csv
 import shutil
 import argparse
@@ -9,6 +10,11 @@ def remove_prefix(a, b):
     if b.startswith(a):
         return b[len(a) :]
     return b
+
+
+def remove_bracketed_text(s):
+    pattern = r"\[.*?D\]|\[.*?C\]|\[.*?\]"
+    return re.sub(pattern, "", s)
 
 
 def build_dataset(input_path, output_path, **kwargs):
@@ -83,12 +89,26 @@ def process_session_directory(
 
             if os.path.exists(txt_file_path):
                 with open(txt_file_path, "r") as file:
-                    content = file.read().strip()
+                    content = remove_bracketed_text(file.read().strip().lower())
                     with open(
                         metadata_path, "a", newline="", encoding="utf-8"
                     ) as csv_file:
-                        if not content.startswith("[") and "input/" not in content:
-                            content = content.replace('"', "")
+                        content = (
+                            content.replace('"', "")
+                            .replace(";", "")
+                            .replace("...", " ")
+                            .replace(".", "")
+                            .replace(",", "")  # maybe shouldn't remove it, not sure yet
+                            .replace("?", "")
+                            .replace("!", "")
+                        )
+
+                        if (
+                            not content.startswith("[")
+                            and "input/" not in content
+                            and not content == "xxx"
+                            and not content == ""
+                        ):
                             shutil.copy(
                                 os.path.join(wav_path, wav_file), wav_output_path
                             )
