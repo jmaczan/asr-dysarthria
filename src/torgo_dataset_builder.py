@@ -30,7 +30,6 @@ def build_dataset(input_path, output_path, **kwargs):
                         + os.path.basename(os.path.dirname(entry))
                         + "_"
                     )
-                    print(prefix)
                     process_session_directory(
                         entry.path,
                         output_path,
