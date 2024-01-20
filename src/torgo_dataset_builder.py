@@ -15,6 +15,14 @@ def build_dataset(input_path, output_path, **kwargs):
     visited = set()
     queue = deque([input_path])
 
+    metadata_path = os.path.join(
+        output_path, kwargs.get("metadata_file", "metadata.csv")
+    )
+
+    with open(metadata_path, "a", newline="", encoding="utf-8") as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(["file_name", "transcription"])
+
     while queue:
         current_path = queue.popleft()
         if current_path in visited:

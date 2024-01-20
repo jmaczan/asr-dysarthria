@@ -6,11 +6,15 @@ Automatic speech recognition for people with dysarthria
 
 `python src/train.py`
 
+Model is hosted on Hugging Face: https://huggingface.co/jmaczan/asr-dysarthria-wav2vec2-v0
+
 ## Building the TORGO dataset
 
 `python src/torgo_dataset_builder.py`
 
 http://www.cs.toronto.edu/~complingweb/data/TORGO/torgo.html
+
+Dataset is hosted on Hugging Face: https://huggingface.co/datasets/jmaczan/TORGO
 
 ## Open questions
 
