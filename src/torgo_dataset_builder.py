@@ -5,6 +5,12 @@ import argparse
 from collections import deque
 
 
+def remove_prefix(a, b):
+    if b.startswith(a):
+        return b[len(a) :]
+    return b
+
+
 def build_dataset(input_path, output_path, **kwargs):
     visited = set()
     queue = deque([input_path])
@@ -18,11 +24,25 @@ def build_dataset(input_path, output_path, **kwargs):
         for entry in os.scandir(current_path):
             if entry.is_dir():
                 if entry.name.startswith("Session"):
-                    process_session_directory(entry.path, output_path, **kwargs)
+                    prefix = (
+                        os.path.basename(os.path.dirname(os.path.dirname(entry)))
+                        + "_"
+                        + os.path.basename(os.path.dirname(entry))
+                        + "_"
+                    )
+                    print(prefix)
+                    process_session_directory(
+                        entry.path,
+                        output_path,
+                        prefix,
+                        **kwargs,
+                    )
                 queue.append(entry.path)
 
 
-def process_session_directory(single_input_path, output_path, **kwargs):
+def process_session_directory(
+    single_input_path, output_path, wav_file_prefix="", **kwargs
+):
     metadata_path = os.path.join(
         output_path, kwargs.get("metadata_file", "metadata.csv")
     )
@@ -39,17 +59,17 @@ def process_session_directory(single_input_path, output_path, **kwargs):
 
     for wav_file in os.listdir(wav_path):
         if wav_file.endswith(".wav"):
-            new_wav_name = (
-                os.path.join(os.path.basename(single_input_path) + "_" + wav_file)
-                if not huggingface_format
-                else os.path.join(
-                    "data", os.path.basename(single_input_path) + "_" + wav_file
-                )
+            basic_wav_name = (
+                wav_file_prefix + os.path.basename(single_input_path) + "_" + wav_file
             )
 
-            wav_output_path = os.path.join(
-                audio_output_path, os.path.basename(single_input_path) + "_" + wav_file
+            new_wav_name = (
+                os.path.join(basic_wav_name)
+                if not huggingface_format
+                else os.path.join("data", basic_wav_name)
             )
+
+            wav_output_path = os.path.join(audio_output_path, basic_wav_name)
 
             txt_file = os.path.splitext(wav_file)[0] + ".txt"
             txt_file_path = os.path.join(prompts_path, txt_file)
