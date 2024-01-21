@@ -19,6 +19,7 @@ Dataset is hosted on Hugging Face: https://huggingface.co/datasets/jmaczan/TORGO
 ## Open questions
 
 - How to obtain Nemours database of dysarthric speech? https://ieeexplore.ieee.org/document/608020
+- How to do audio data augmentation?
 
 ## Installation
 

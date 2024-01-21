@@ -13,7 +13,7 @@ def remove_prefix(a, b):
 
 
 def remove_bracketed_text(s):
-    pattern = r"\[.*?D\]|\[.*?C\]|\[.*?\]"
+    pattern = r"\[.*?d\]|\[.*?c\]|\[.*?\]"
     return re.sub(pattern, "", s)
 
 
@@ -101,6 +101,8 @@ def process_session_directory(
                             .replace(",", "")  # maybe shouldn't remove it, not sure yet
                             .replace("?", "")
                             .replace("!", "")
+                            .replace("[d", "")
+                            .replace("[c", "")
                         )
 
                         if (
@@ -163,7 +165,10 @@ if __name__ == "__main__":
                 try:
                     if os.path.isfile(file_path) or os.path.islink(file_path):
                         os.unlink(file_path)
-                    elif os.path.isdir(file_path):
+                    elif (
+                        os.path.isdir(file_path)
+                        and not os.path.basename(file_path) == ".git"
+                    ):
                         shutil.rmtree(file_path)
                 except Exception as e:
                     print(f"Failed to delete {file_path}. Reason: {e}")
