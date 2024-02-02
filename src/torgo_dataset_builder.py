@@ -1,4 +1,5 @@
 import os
+import hashlib
 import re
 import csv
 import shutil
@@ -96,6 +97,7 @@ def process_session_directory(
                         content = (
                             content.replace('"', "")
                             .replace(";", "")
+                            .replace(":", "")
                             .replace("...", " ")
                             .replace(".", "")
                             .replace(",", "")  # maybe shouldn't remove it, not sure yet
@@ -116,6 +118,30 @@ def process_session_directory(
                             )
                             writer = csv.writer(csv_file)
                             writer.writerow([new_wav_name, content])
+
+
+def remove_duplicate_files(path):
+    def file_hash(filepath):
+        with open(filepath, "rb") as f:
+            return hashlib.md5(f.read()).hexdigest()
+
+    if not os.path.isdir(path):
+        raise ValueError("Provided path is not a directory")
+
+    files_hash = {}
+
+    for foldername, subfolders, filenames in os.walk(path):
+        for filename in filenames:
+            file_path = os.path.join(foldername, filename)
+            hash_val = file_hash(file_path)
+
+            if hash_val in files_hash:
+                os.remove(file_path)
+                print(f"Removed duplicate file: {file_path}")
+            else:
+                files_hash[hash_val] = file_path
+
+    print("Duplicate file removal complete.")
 
 
 if __name__ == "__main__":
@@ -163,7 +189,11 @@ if __name__ == "__main__":
             for filename in os.listdir(output_path):
                 file_path = os.path.join(output_path, filename)
                 try:
-                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                    if (
+                        (os.path.isfile(file_path) or os.path.islink(file_path))
+                        and not os.path.basename(file_path) == "README.md"
+                        and not os.path.basename(file_path) == ".gitattributes"
+                    ):
                         os.unlink(file_path)
                     elif (
                         os.path.isdir(file_path)
@@ -188,5 +218,7 @@ if __name__ == "__main__":
         clear_output_directory=clear_output_directory,
         huggingface_format=huggingface_format,
     )
+
+    remove_duplicate_files(output_path)
 
     print("Dataset build done 😺")

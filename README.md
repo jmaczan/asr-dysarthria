@@ -42,6 +42,10 @@ If you install another library, reflect it in requirements.txt by running `pip f
 
 papers:
 
+https://ar5iv.labs.arxiv.org/html/2204.00770 (https://arxiv.org/abs/2204.00770)
+
+https://www.isca-speech.org/archive/pdfs/interspeech_2022/baskar22b_interspeech.pdf
+
 https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=10225595
 
 https://www.sciencedirect.com/science/article/pii/S2405959521000874
