@@ -1,66 +1,24 @@
-accelerate==0.26.1
-aiohttp==3.9.1
-aiosignal==1.3.1
-async-timeout==4.0.3
-attrs==23.2.0
-audioread==3.0.1
-certifi==2023.11.17
-cffi==1.16.0
-charset-normalizer==3.3.2
-click==8.1.7
-datasets==2.16.1
-decorator==5.1.1
-dill==0.3.7
-filelock==3.13.1
-frozenlist==1.4.1
-fsspec==2023.10.0
-huggingface-hub==0.20.2
-idna==3.6
-Jinja2==3.1.3
-jiwer==3.0.3
-joblib==1.3.2
-lazy_loader==0.3
-librosa==0.10.1
-llvmlite==0.41.1
-MarkupSafe==2.1.3
-mpmath==1.3.0
-msgpack==1.0.7
-multidict==6.0.4
-multiprocess==0.70.15
-networkx==3.2.1
-numba==0.58.1
-numpy==1.26.3
-packaging==23.2
-pandas==2.1.4
-pillow==10.2.0
-platformdirs==4.1.0
-pooch==1.8.0
-psutil==5.9.7
-pyarrow==14.0.2
-pyarrow-hotfix==0.6
-pycparser==2.21
-python-dateutil==2.8.2
-pytz==2023.3.post1
-PyYAML==6.0.1
-rapidfuzz==3.6.1
-regex==2023.12.25
-requests==2.31.0
-safetensors==0.4.1
-scikit-learn==1.4.0
-scipy==1.11.4
-six==1.16.0
-soundfile==0.12.1
-soxr==0.3.7
-sympy==1.12
-threadpoolctl==3.2.0
-tokenizers==0.15.0
-torch==2.1.2
-torchaudio==2.1.2
-torchvision==0.16.2
-tqdm==4.66.1
-transformers==4.36.2
-typing_extensions==4.9.0
-tzdata==2023.4
-urllib3==2.1.0
-xxhash==3.4.1
-yarl==1.9.4
+# --------- pytorch --------- #
+torch>=2.0.0
+torchvision>=0.15.0
+lightning>=2.0.0
+torchmetrics>=0.11.4
+
+# --------- hydra --------- #
+hydra-core==1.3.2
+hydra-colorlog==1.2.0
+hydra-optuna-sweeper==1.2.0
+
+# --------- loggers --------- #
+# wandb
+# neptune-client
+# mlflow
+# comet-ml
+# aim>=3.16.2  # no lower than 3.16.2, see https://github.com/aimhubio/aim/issues/2550
+
+# --------- others --------- #
+rootutils       # standardizing the project root setup
+pre-commit      # hooks for applying linters on commit
+rich            # beautiful text formatting in terminal
+pytest          # tests
+# sh            # for running bash commands in some tests (linux/macos only)
