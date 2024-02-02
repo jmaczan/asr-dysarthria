@@ -5,6 +5,7 @@
 Automatic speech recognition for people with dysarthria
 
 </div>
+
 ## Training the model
 
 `python src/train.py`
