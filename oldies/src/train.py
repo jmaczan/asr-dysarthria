@@ -1,30 +1,28 @@
-import torch
-import torchaudio
-import re
 import json
-
+import random
+import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
-from datasets import ClassLabel, load_dataset, load_metric
 
-import random
 import pandas as pd
+import torch
+import torchaudio
+from datasets import ClassLabel, load_dataset, load_metric
+from transformers import (
+    AutoModelForCTC,
+    Trainer,
+    TrainingArguments,
+    Wav2Vec2CTCTokenizer,
+    Wav2Vec2FeatureExtractor,
+    Wav2Vec2ForCTC,
+    Wav2Vec2Processor,
+)
 
 # only for notebooks:
 # from IPython.display import display, HTML
 # from huggingface_hub import notebook_login
 # notebook_login()
 
-from transformers import (
-    Wav2Vec2CTCTokenizer,
-    Wav2Vec2ForCTC,
-    TrainingArguments,
-    AutoModelForCTC,
-    Wav2Vec2Processor,
-    Trainer,
-    Wav2Vec2FeatureExtractor,
-    Wav2Vec2Processor,
-)
 
 if torch.backends.mps.is_available():
     mps_device = torch.device("mps")
@@ -46,16 +44,13 @@ dataset = load_dataset(dataset_name, split="train")
 print(dataset)
 
 dataset = dataset.train_test_split(test_size=0.3)
-
 """clean up data"""
 
-chars_to_ignore_regex = '[\,\?\.\!\-\;\:"]'
+chars_to_ignore_regex = r'[\,\?\.\!\-\;\:"]'
 
 
 def remove_special_characters(batch):
-    batch["transcription"] = re.sub(
-        chars_to_ignore_regex, "", batch["transcription"]
-    ).lower()
+    batch["transcription"] = re.sub(chars_to_ignore_regex, "", batch["transcription"]).lower()
     return batch
 
 
@@ -63,9 +58,7 @@ dataset = dataset.map(remove_special_characters)
 
 
 def show_random_elements(dataset, num_examples=10):
-    assert num_examples <= len(
-        dataset
-    ), "Can't pick more elements than there are in the dataset."
+    assert num_examples <= len(dataset), "Can't pick more elements than there are in the dataset."
     picks = []
     for _ in range(num_examples):
         pick = random.randint(0, len(dataset) - 1)
@@ -128,9 +121,10 @@ print(dataset["train"][0]["audio"]["path"])
 
 dataset["train"][0]["audio"]
 
+import random
+
 import IPython.display as ipd
 import numpy as np
-import random
 
 rand_int = random.randint(0, len(dataset["train"]))
 
@@ -140,9 +134,7 @@ ipd.Audio(data=np.asarray(dataset["train"][rand_int]["audio"]["array"]), rate=16
 rand_int = random.randint(0, len(dataset["train"]))
 
 print("Target text:", dataset["train"][rand_int]["transcription"])
-print(
-    "Input array shape:", np.asarray(dataset["train"][rand_int]["audio"]["array"]).shape
-)
+print("Input array shape:", np.asarray(dataset["train"][rand_int]["audio"]["array"]).shape)
 print("Sampling rate:", dataset["train"][rand_int]["audio"]["sampling_rate"])
 
 
@@ -159,9 +151,7 @@ def prepare_dataset(batch):
     return batch
 
 
-dataset = dataset.map(
-    prepare_dataset, remove_columns=dataset.column_names["train"], num_proc=4
-)
+dataset = dataset.map(prepare_dataset, remove_columns=dataset.column_names["train"], num_proc=4)
 
 
 @dataclass
@@ -202,9 +192,7 @@ class DataCollatorCTCWithPadding:
     ) -> Dict[str, torch.Tensor]:
         # split inputs and labels since they have to be of different lengths and need
         # different padding methods
-        input_features = [
-            {"input_values": feature["input_values"]} for feature in features
-        ]
+        input_features = [{"input_values": feature["input_values"]} for feature in features]
         label_features = [{"input_ids": feature["labels"]} for feature in features]
 
         batch = self.processor.pad(
@@ -224,9 +212,7 @@ class DataCollatorCTCWithPadding:
             )
 
         # replace padding with -100 to ignore loss correctly
-        labels = labels_batch["input_ids"].masked_fill(
-            labels_batch.attention_mask.ne(1), -100
-        )
+        labels = labels_batch["input_ids"].masked_fill(labels_batch.attention_mask.ne(1), -100)
 
         batch["labels"] = labels
 

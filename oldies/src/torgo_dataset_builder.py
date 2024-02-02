@@ -1,9 +1,9 @@
-import os
-import hashlib
-import re
-import csv
-import shutil
 import argparse
+import csv
+import hashlib
+import os
+import re
+import shutil
 from collections import deque
 
 
@@ -22,9 +22,7 @@ def build_dataset(input_path, output_path, **kwargs):
     visited = set()
     queue = deque([input_path])
 
-    metadata_path = os.path.join(
-        output_path, kwargs.get("metadata_file", "metadata.csv")
-    )
+    metadata_path = os.path.join(output_path, kwargs.get("metadata_file", "metadata.csv"))
 
     with open(metadata_path, "a", newline="", encoding="utf-8") as csv_file:
         writer = csv.writer(csv_file)
@@ -54,12 +52,8 @@ def build_dataset(input_path, output_path, **kwargs):
                 queue.append(entry.path)
 
 
-def process_session_directory(
-    single_input_path, output_path, wav_file_prefix="", **kwargs
-):
-    metadata_path = os.path.join(
-        output_path, kwargs.get("metadata_file", "metadata.csv")
-    )
+def process_session_directory(single_input_path, output_path, wav_file_prefix="", **kwargs):
+    metadata_path = os.path.join(output_path, kwargs.get("metadata_file", "metadata.csv"))
 
     huggingface_format = kwargs.get("huggingface_format", False)
 
@@ -73,9 +67,7 @@ def process_session_directory(
 
     for wav_file in os.listdir(wav_path):
         if wav_file.endswith(".wav"):
-            basic_wav_name = (
-                wav_file_prefix + os.path.basename(single_input_path) + "_" + wav_file
-            )
+            basic_wav_name = wav_file_prefix + os.path.basename(single_input_path) + "_" + wav_file
 
             new_wav_name = (
                 os.path.join(basic_wav_name)
@@ -89,11 +81,9 @@ def process_session_directory(
             txt_file_path = os.path.join(prompts_path, txt_file)
 
             if os.path.exists(txt_file_path):
-                with open(txt_file_path, "r") as file:
+                with open(txt_file_path) as file:
                     content = remove_bracketed_text(file.read().strip().lower())
-                    with open(
-                        metadata_path, "a", newline="", encoding="utf-8"
-                    ) as csv_file:
+                    with open(metadata_path, "a", newline="", encoding="utf-8") as csv_file:
                         content = (
                             content.replace('"', "")
                             .replace(";", "")
@@ -113,9 +103,7 @@ def process_session_directory(
                             and not content == "xxx"
                             and not content == ""
                         ):
-                            shutil.copy(
-                                os.path.join(wav_path, wav_file), wav_output_path
-                            )
+                            shutil.copy(os.path.join(wav_path, wav_file), wav_output_path)
                             writer = csv.writer(csv_file)
                             writer.writerow([new_wav_name, content])
 
@@ -148,13 +136,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Build a dataset for ASR training using TORGO dataset. Code: https://github.com/jmaczan/asr-dysarthria. The original TORGO database: http://www.cs.toronto.edu/~complingweb/data/TORGO/torgo.html"
     )
-    parser.add_argument(
-        "--input", type=str, help="Path to the original TORGO dataset directory"
-    )
+    parser.add_argument("--input", type=str, help="Path to the original TORGO dataset directory")
 
-    parser.add_argument(
-        "--output", type=str, help="This is where parsed dataset will land"
-    )
+    parser.add_argument("--output", type=str, help="This is where parsed dataset will land")
 
     parser.add_argument(
         "--clear-output-dir",
@@ -195,10 +179,7 @@ if __name__ == "__main__":
                         and not os.path.basename(file_path) == ".gitattributes"
                     ):
                         os.unlink(file_path)
-                    elif (
-                        os.path.isdir(file_path)
-                        and not os.path.basename(file_path) == ".git"
-                    ):
+                    elif os.path.isdir(file_path) and not os.path.basename(file_path) == ".git":
                         shutil.rmtree(file_path)
                 except Exception as e:
                     print(f"Failed to delete {file_path}. Reason: {e}")
