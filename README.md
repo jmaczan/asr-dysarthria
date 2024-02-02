@@ -4,6 +4,7 @@
 
 Automatic speech recognition for people with dysarthria
 
+</div>
 ## Training the model
 
 `python src/train.py`
@@ -90,6 +91,7 @@ https://ai.meta.com/blog/self-supervision-and-building-more-robust-speech-recogn
 
 This is the great template by Łukasz @ashleve I have used after initial training to rebuild the project, thanks for a a suggestion @PiotrGrzybowski!
 
+<div align="center">
 # Lightning-Hydra-Template
 
 [![python](https://img.shields.io/badge/-Python_3.8_%7C_3.9_%7C_3.10-blue?logo=python&logoColor=white)](https://github.com/pre-commit/pre-commit)
