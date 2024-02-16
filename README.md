@@ -16,7 +16,7 @@
 
 Automatic speech recognition for people with dysarthria
 
-Model is hosted on Hugging Face: https://huggingface.co/jmaczan/asr-dysarthria-wav2vec2-v0
+Model is hosted on Hugging Face: https://huggingface.co/jmaczan/wav2vec2-large-xls-r-300m-dysarthria
 
 ## Installation
 
