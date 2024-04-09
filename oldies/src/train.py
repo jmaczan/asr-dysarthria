@@ -50,7 +50,9 @@ chars_to_ignore_regex = r'[\,\?\.\!\-\;\:"]'
 
 
 def remove_special_characters(batch):
-    batch["transcription"] = re.sub(chars_to_ignore_regex, "", batch["transcription"]).lower()
+    batch["transcription"] = re.sub(
+        chars_to_ignore_regex, "", batch["transcription"]
+    ).lower()
     return batch
 
 
@@ -58,7 +60,9 @@ dataset = dataset.map(remove_special_characters)
 
 
 def show_random_elements(dataset, num_examples=10):
-    assert num_examples <= len(dataset), "Can't pick more elements than there are in the dataset."
+    assert num_examples <= len(
+        dataset
+    ), "Can't pick more elements than there are in the dataset."
     picks = []
     for _ in range(num_examples):
         pick = random.randint(0, len(dataset) - 1)
@@ -134,7 +138,9 @@ ipd.Audio(data=np.asarray(dataset["train"][rand_int]["audio"]["array"]), rate=16
 rand_int = random.randint(0, len(dataset["train"]))
 
 print("Target text:", dataset["train"][rand_int]["transcription"])
-print("Input array shape:", np.asarray(dataset["train"][rand_int]["audio"]["array"]).shape)
+print(
+    "Input array shape:", np.asarray(dataset["train"][rand_int]["audio"]["array"]).shape
+)
 print("Sampling rate:", dataset["train"][rand_int]["audio"]["sampling_rate"])
 
 
@@ -151,7 +157,9 @@ def prepare_dataset(batch):
     return batch
 
 
-dataset = dataset.map(prepare_dataset, remove_columns=dataset.column_names["train"], num_proc=4)
+dataset = dataset.map(
+    prepare_dataset, remove_columns=dataset.column_names["train"], num_proc=4
+)
 
 
 @dataclass
@@ -192,7 +200,9 @@ class DataCollatorCTCWithPadding:
     ) -> Dict[str, torch.Tensor]:
         # split inputs and labels since they have to be of different lengths and need
         # different padding methods
-        input_features = [{"input_values": feature["input_values"]} for feature in features]
+        input_features = [
+            {"input_values": feature["input_values"]} for feature in features
+        ]
         label_features = [{"input_ids": feature["labels"]} for feature in features]
 
         batch = self.processor.pad(
@@ -212,7 +222,9 @@ class DataCollatorCTCWithPadding:
             )
 
         # replace padding with -100 to ignore loss correctly
-        labels = labels_batch["input_ids"].masked_fill(labels_batch.attention_mask.ne(1), -100)
+        labels = labels_batch["input_ids"].masked_fill(
+            labels_batch.attention_mask.ne(1), -100
+        )
 
         batch["labels"] = labels
 
