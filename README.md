@@ -6,6 +6,8 @@ Automatic speech recognition for people with dysarthria
 
 The code here is based on Patrick von Platen's article and notebook https://huggingface.co/blog/fine-tune-xlsr-wav2vec2
 
+It uses Uaspeech dataset loaded from Google Drive, so you need to get this data by yourself. Alternatively, you can use TORGO dataset
+
 🤗 Model: https://huggingface.co/jmaczan/wav2vec2-large-xls-r-300m-dysarthria
 
 🤗 Dataset: https://huggingface.co/datasets/jmaczan/TORGO
