@@ -6,6 +6,22 @@ Automatic speech recognition for people with dysarthria
 
 Use this Jupyter Notebook [wav2vec2-large-xls-r-300m-dysarthria-big-dataset.ipynb](wav2vec2-large-xls-r-300m-dysarthria-big-dataset.ipynb) to train your own model
 
+## Deploying
+
+Download and convert trained model (model.safetensors file)
+
+```sh
+mkdir models
+python scripts/convert_model.py --url https://huggingface.co/jmaczan/wav2vec2-large-xls-r-300m-dysarthria-big-dataset/resolve/main/model.safetensors --output models
+```
+
+Serve it
+
+```
+cd web-app
+python -m http.server
+```
+
 ## Pretrained models
 
 - [Recommended] Loss: 0.0864, Wer: 0.182 https://huggingface.co/jmaczan/wav2vec2-large-xls-r-300m-dysarthria-big-dataset
