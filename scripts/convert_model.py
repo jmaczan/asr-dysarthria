@@ -1,55 +1,64 @@
-import argparse
-import os
-import requests
+from onnxruntime.quantization.quantize import quantize
 from transformers import Wav2Vec2ForCTC
-from safetensors import safe_open
-import tensorflow as tf
+import torch
+import argparse
 
 
-def download_file(url, dest_path):
-    response = requests.get(url, stream=True)
-    response.raise_for_status()
-    with open(dest_path, "wb") as file:
-        for chunk in response.iter_content(chunk_size=8192):
-            file.write(chunk)
+# from https://github.com/ccoreilly/wav2vec2-service/blob/master/convert_torch_to_onnx.py
 
 
-def convert_model(safetensors_path, output_path):
-    # Load the safetensors model
-    with safe_open(safetensors_path, framework="pt") as f:
-        state_dict = {k: v.numpy() for k, v in f.items()}
+def convert_to_onnx(model_id_or_path, onnx_model_name):
+    print(f"Converting {model_id_or_path} to onnx")
+    model = Wav2Vec2ForCTC.from_pretrained(model_id_or_path)
+    audio_len = 250000
 
-    # Convert to TensorFlow format
-    model = Wav2Vec2ForCTC.from_pretrained(
-        safetensors_path, state_dict=state_dict, from_safetensors=True
+    x = torch.randn(1, audio_len, requires_grad=True)
+
+    torch.onnx.export(
+        model,  # model being run
+        x,  # model input (or a tuple for multiple inputs)
+        onnx_model_name,  # where to save the model (can be a file or file-like object)
+        export_params=True,  # store the trained parameter weights inside the model file
+        opset_version=14,  # the ONNX version to export the model to
+        do_constant_folding=True,  # whether to execute constant folding for optimization
+        input_names=["input"],  # the model's input names
+        output_names=["output"],  # the model's output names
+        dynamic_axes={
+            "input": {1: "audio_len"},  # variable length axes
+            "output": {1: "audio_len"},
+        },
     )
 
-    # Export to TensorFlow SavedModel format
-    tf_model = model.to_tf_model()
-    tf_model.save_pretrained(output_path)
 
-    # Convert the TensorFlow model to TensorFlow.js format
-    os.system(
-        f"tensorflowjs_converter --input_format=tf_saved_model --output_format=tfjs_graph_model {output_path} {output_path}/tfjs_model"
+def quantize_onnx_model(onnx_model_path, quantized_model_path):
+    print("Starting quantization...")
+    from onnxruntime.quantization import quantize_dynamic, QuantType
+
+    quantize_dynamic(
+        onnx_model_path, quantized_model_path, weight_type=QuantType.QUInt8
     )
 
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="Convert a safetensors model to TensorFlow.js format."
-    )
-    parser.add_argument(
-        "--url", required=True, help="HTTPS URL of the safetensors model file"
-    )
-    parser.add_argument(
-        "--output", required=True, help="Path to save the converted TensorFlow.js model"
-    )
-    args = parser.parse_args()
-
-    safetensors_path = os.path.join(args.output, "model.safetensors")
-    download_file(args.url, safetensors_path)
-    convert_model(safetensors_path, args.output)
+    print(f"Quantized model saved to: {quantized_model_path}")
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="jmaczan/wav2vec2-large-xls-r-300m-dysarthria-big-dataset",
+        help="Model HuggingFace ID or path that will converted to ONNX",
+    )
+    parser.add_argument(
+        "--quantize",
+        action="store_true",
+        help="Whether to use also quantize the model or not",
+    )
+    args = parser.parse_args()
+
+    model_id_or_path = args.model
+    onnx_model_name = model_id_or_path.split("/")[-1] + ".onnx"
+    convert_to_onnx(model_id_or_path, onnx_model_name)
+    if args.quantize:
+        quantized_model_name = model_id_or_path.split("/")[-1] + ".quant.onnx"
+        quantize_onnx_model(onnx_model_name, quantized_model_name)

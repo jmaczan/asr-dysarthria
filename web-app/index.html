@@ -2,84 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Optimized ASR Web App</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgpu"></script>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 20px;
-        padding: 0;
-      }
-      h1 {
-        font-size: 24px;
-        margin-bottom: 20px;
-      }
-      input,
-      button {
-        font-size: 16px;
-        margin-bottom: 20px;
-      }
-      #transcription {
-        font-size: 18px;
-        margin-top: 20px;
-      }
-    </style>
+    <title>Whisper Web</title>
   </head>
   <body>
-    <h1>Optimized ASR Web App</h1>
-    <input type="file" id="audioInput" accept="audio/*" />
-    <button onclick="transcribe()">Transcribe</button>
-    <p id="transcription"></p>
-
-    <script>
-      // Initialize TensorFlow.js with WebGPU backend
-      async function initializeBackend() {
-        await tf.setBackend("webgpu");
-        await tf.ready();
-        console.log("WebGPU backend set");
-      }
-
-      initializeBackend();
-
-      async function transcribe() {
-        const fileInput = document.getElementById("audioInput");
-        const file = fileInput.files[0];
-        if (!file) {
-          alert("Please select an audio file.");
-          return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-          const audioBuffer = event.target.result;
-          const audioArray = new Float32Array(audioBuffer);
-
-          // Load and cache the model
-          const modelUrl = "path/to/tfjs_model/model.json";
-          const model = await tf.loadGraphModel(modelUrl);
-
-          // Convert audio data to tensor
-          const inputTensor = tf.tensor(audioArray, [1, audioArray.length]);
-
-          // Run the model prediction
-          const output = model.predict(inputTensor);
-          const logits = output.arraySync();
-
-          // Decode the logits to text (implement your own decoding or use an API)
-          const decodedText = decodeLogits(logits);
-          document.getElementById("transcription").innerText = decodedText;
-        };
-
-        reader.readAsArrayBuffer(file);
-      }
-
-      function decodeLogits(logits) {
-        // Implement the decoding logic or use an external service
-        // For simplicity, let's assume the function returns the decoded text
-        return "Decoded text from logits";
-      }
-    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>
