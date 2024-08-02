@@ -6,6 +6,25 @@ Automatic speech recognition for people with dysarthria
 
 Use this Jupyter Notebook [wav2vec2-large-xls-r-300m-dysarthria-big-dataset.ipynb](wav2vec2-large-xls-r-300m-dysarthria-big-dataset.ipynb) to train your own model
 
+## Installation
+
+Prerequisities:
+
+- Python >= 3.10
+- Anaconda
+
+Steps:
+
+- `conda install --file requirements.txt`
+
+## Inference
+
+Run model.safetensors: `python -m cli-app.run.py`
+
+Run ONNX: `python -m cli-app.onnx_run`
+
+Adjust these scripts if needed (by default they translate a `file.wav` file in `cli-app` folder)
+
 ## Deploying
 
 Download and convert trained model (model.safetensors file)
