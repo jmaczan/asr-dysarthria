@@ -19,9 +19,11 @@ Steps:
 
 ## Inference
 
-Run model.safetensors: `python -m cli-app.run.py`
+In directory cli-app:
 
-Run ONNX: `python -m cli-app.onnx_run`
+Run model.safetensors: `python -m run`
+
+Run ONNX: `python -m onnx_run`
 
 Adjust these scripts if needed (by default they translate a `file.wav` file in `cli-app` folder)
 

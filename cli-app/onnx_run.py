@@ -4,8 +4,24 @@ import soundfile as sf
 from transformers import AutoProcessor
 
 # Load the ONNX model
-ort_session = onnxruntime.InferenceSession("model.onnx")
+available_providers = onnxruntime.get_available_providers()
+print("Available providers:", available_providers)
 
+# Prefer CoreML, then fall back to CPU
+preferred_providers = ["CoreMLExecutionProvider", "CPUExecutionProvider"]
+
+# Find the first available preferred provider
+provider = next((p for p in preferred_providers if p in available_providers), None)
+
+if provider:
+    print(f"Using provider: {provider}")
+    ort_session = onnxruntime.InferenceSession("model.onnx", providers=[provider])
+else:
+    print("No preferred provider available. Using default.")
+    ort_session = onnxruntime.InferenceSession("model.onnx")
+
+ort_session = onnxruntime.InferenceSession("model.onnx")
+print("Provider being used:", ort_session.get_providers())
 # Load the processor
 processor = AutoProcessor.from_pretrained(
     "jmaczan/wav2vec2-large-xls-r-300m-dysarthria"
@@ -40,5 +56,10 @@ def transcribe(audio_file):
 
 # Example usage
 audio_file = "file.wav"
+import time
+
+start = time.time()
 result = transcribe(audio_file)
+end = time.time()
+print(end - start)
 print(f"Transcription: {result}")

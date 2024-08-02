@@ -58,5 +58,10 @@ def transcribe(file_path):
 
 # Example usage
 audio_file = "file.wav"
+import time
+
+start = time.time()
 result = transcribe(audio_file)
+end = time.time()
+print(end - start)
 print(f"Transcription: {result}")
