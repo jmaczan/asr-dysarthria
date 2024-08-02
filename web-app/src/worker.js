@@ -8,8 +8,7 @@ class PipelineFactory {
     static model = null;
     static instance = null;
 
-    constructor(tokenizer, model) {
-        this.tokenizer = tokenizer;
+    constructor(model) {
         this.model = model;
     }
 
@@ -86,48 +85,6 @@ const transcribe = async ({ audio, model, subtask, language }) => {
     let start_time;
     let num_tokens = 0;
     let tps;
-    const streamer = new WhisperTextStreamer(transcriber.tokenizer, {
-        time_precision,
-        on_chunk_start: (x) => {
-            const offset = (chunk_length_s - stride_length_s) * chunk_count;
-            chunks.push({
-                text: "",
-                timestamp: [offset + x, null],
-                finalised: false,
-                offset,
-            });
-        },
-        token_callback_function: (x) => {
-            start_time ??= performance.now();
-            if (num_tokens++ > 0) {
-                tps = (num_tokens / (performance.now() - start_time)) * 1000;
-            }
-        },
-        callback_function: (x) => {
-            if (chunks.length === 0) return;
-            // Append text to the last chunk
-            chunks.at(-1).text += x;
-
-            self.postMessage({
-                status: "update",
-                data: {
-                    text: "", // No need to send full text yet
-                    chunks,
-                    tps,
-                },
-            });
-        },
-        on_chunk_end: (x) => {
-            const current = chunks.at(-1);
-            current.timestamp[1] = x + current.offset;
-            current.finalised = true;
-        },
-        on_finalize: () => {
-            start_time = null;
-            num_tokens = 0;
-            ++chunk_count;
-        },
-    });
 
     // Actually run transcription
     const output = await transcriber(audio, {
@@ -148,7 +105,7 @@ const transcribe = async ({ audio, model, subtask, language }) => {
         force_full_sequences: false,
 
         // Callback functions
-        streamer, // after each generation step
+        // streamer, // after each generation step
     }).catch((error) => {
         console.error(error);
         self.postMessage({
