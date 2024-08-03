@@ -2,6 +2,10 @@
 
 Automatic speech recognition for people with dysarthria
 
+This repo is under heavy research and development and so the README.md is outdated. Sorry!
+
+I deployed a web page so you can use a model in your browser: https://asr-dysarthria-preview.pages.dev/
+
 ## Training
 
 Use this Jupyter Notebook [wav2vec2-large-xls-r-300m-dysarthria-big-dataset.ipynb](wav2vec2-large-xls-r-300m-dysarthria-big-dataset.ipynb) to train your own model
