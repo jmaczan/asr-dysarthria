@@ -46,7 +46,7 @@ def transcribe(audio_file):
     # Run inference
     ort_inputs = {ort_session.get_inputs()[0].name: inputs.input_values}
     logits = ort_session.run(None, ort_inputs)[0]
-
+    print(logits.shape)
     # Post-process the output
     predicted_ids = np.argmax(logits, axis=-1)
     transcription = processor.batch_decode(predicted_ids)

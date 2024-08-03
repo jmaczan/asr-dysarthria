@@ -44,8 +44,8 @@ export default function Transcript({ transcribedData }: Props) {
         if (divRef.current) {
             const diff = Math.abs(
                 divRef.current.offsetHeight +
-                divRef.current.scrollTop -
-                divRef.current.scrollHeight,
+                    divRef.current.scrollTop -
+                    divRef.current.scrollHeight,
             );
 
             if (diff <= 100) {
@@ -54,51 +54,58 @@ export default function Transcript({ transcribedData }: Props) {
             }
         }
     });
-
     return (
         <div
             ref={divRef}
             className='w-full flex flex-col my-2 p-4 max-h-[20rem] overflow-y-auto'
         >
+            {transcribedData?.text && (
+                <div
+                    className={`w-full flex flex-row mb-2 ${
+                        transcribedData?.isBusy ? "bg-gray-100" : "bg-white"
+                    } rounded-lg p-4 shadow-xl shadow-black/5 ring-1 ring-slate-700/10`}
+                >
+                    {transcribedData.text}
+                </div>
+            )}
             {transcribedData?.chunks &&
                 transcribedData.chunks.map((chunk, i) => (
                     <div
                         key={`${i}-${chunk.text}`}
-                        className={`w-full flex flex-row mb-2 ${transcribedData?.isBusy ? 'bg-gray-100' : 'bg-white'} rounded-lg p-4 shadow-xl shadow-black/5 ring-1 ring-slate-700/10`}
+                        className={`w-full flex flex-row mb-2 ${
+                            transcribedData?.isBusy ? "bg-gray-100" : "bg-white"
+                        } rounded-lg p-4 shadow-xl shadow-black/5 ring-1 ring-slate-700/10`}
                     >
                         <div className='mr-5'>
                             {formatAudioTimestamp(chunk.timestamp[0])}
                         </div>
                         {chunk.text}
                     </div>
-                ))
-            }
-            {
-                transcribedData?.tps && 
-                (
-                    <p className='text-sm text-center mt-4 mb-1'>
-                        <span className="font-semibold text-black">{transcribedData?.tps.toFixed(2)}</span> <span className="text-gray-500">tokens/second</span>
-                    </p>
-                )
-            }
-            {
-                transcribedData && !transcribedData.isBusy && (
-                    <div className='w-full text-right'>
-                        <button
-                            onClick={exportTXT}
-                            className='text-white bg-green-500 hover:bg-green-600 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2 text-center mr-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800 inline-flex items-center'
-                        >
-                            Export TXT
-                        </button>
-                        <button
-                            onClick={exportJSON}
-                            className='text-white bg-green-500 hover:bg-green-600 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2 text-center mr-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800 inline-flex items-center'
-                        >
-                            Export JSON
-                        </button>
-                    </div>
-                )
-            }
-        </div >
+                ))}
+            {transcribedData?.tps && (
+                <p className='text-sm text-center mt-4 mb-1'>
+                    <span className='font-semibold text-black'>
+                        {transcribedData?.tps.toFixed(2)}
+                    </span>{" "}
+                    <span className='text-gray-500'>tokens/second</span>
+                </p>
+            )}
+            {transcribedData && !transcribedData.isBusy && (
+                <div className='w-full text-right'>
+                    <button
+                        onClick={exportTXT}
+                        className='text-white bg-green-500 hover:bg-green-600 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2 text-center mr-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800 inline-flex items-center'
+                    >
+                        Export TXT
+                    </button>
+                    <button
+                        onClick={exportJSON}
+                        className='text-white bg-green-500 hover:bg-green-600 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2 text-center mr-2 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800 inline-flex items-center'
+                    >
+                        Export JSON
+                    </button>
+                </div>
+            )}
+        </div>
     );
 }
