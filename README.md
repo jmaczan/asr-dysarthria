@@ -4,7 +4,7 @@ Automatic speech recognition for people with dysarthria
 
 This repo is under heavy research and development and so the README.md is outdated. Sorry!
 
-I deployed a web page so you can use a model in your browser: https://asr-dysarthria-preview.pages.dev/
+I deployed a web page so you can use a model in your browser: https://asr-dysarthria-preliminary.pages.dev/
 
 ## Training
 
