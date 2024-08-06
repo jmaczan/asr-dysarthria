@@ -12,7 +12,7 @@ from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
 import os
-from datasets import load_dataset, load_metric, Audio
+from datasets import load_metric
 from transformers import (
     Wav2Vec2CTCTokenizer,
     Wav2Vec2FeatureExtractor,
@@ -22,8 +22,8 @@ from transformers import (
     Trainer,
 )
 import torch
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
+from dataclasses import dataclass
+from typing import Dict, List, Union
 import numpy as np
 
 # TODO: make them argparse params
