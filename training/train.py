@@ -117,7 +117,7 @@ def build_vocab_json(train_dataset, test_dataset):
         json.dump(vocab_dict, vocab_file)
 
 
-def prepare_dataset(batch):
+def prepare_dataset(batch, processor):
     audio = batch["audio"]
 
     # batched output is "un-batched"
@@ -149,21 +149,6 @@ def build_tokenizer():
 
 def build_processor(tokenizer, feature_extractor):
     return Wav2Vec2Processor(feature_extractor=feature_extractor, tokenizer=tokenizer)
-
-
-def compute_metrics(pred):
-    pred_logits = pred.predictions
-    pred_ids = np.argmax(pred_logits, axis=-1)
-
-    pred.label_ids[pred.label_ids == -100] = processor.tokenizer.pad_token_id
-
-    pred_str = processor.batch_decode(pred_ids)
-    # we do not want to group tokens when computing the metrics
-    label_str = processor.batch_decode(pred.label_ids, group_tokens=False)
-
-    wer = wer_metric.compute(predictions=pred_str, references=label_str)
-
-    return {"wer": wer}
 
 
 @dataclass
@@ -219,9 +204,9 @@ class DataCollatorCTCWithPadding:
         return batch
 
 
-if __name__ == "__main__":
+def train_model(config):
     auth_into_hf()
-    dataset = load_uaspeech_from_parquets()
+    dataset = load_uaspeech_from_parquets(config["data_path"])
     dataset = dataset.train_test_split(test_size=0.2)
 
     train_dataset = dataset["train"]
@@ -230,7 +215,7 @@ if __name__ == "__main__":
     train_dataset = train_dataset.map(remove_special_characters)
     test_dataset = test_dataset.map(remove_special_characters)
 
-    build_vocab_json(build_vocabulary, train_dataset, test_dataset)
+    build_vocab_json(train_dataset, test_dataset)
 
     tokenizer = build_tokenizer()
     tokenizer.push_to_hub(repo_name)
@@ -240,10 +225,12 @@ if __name__ == "__main__":
     processor = build_processor(tokenizer, feature_extractor)
 
     train_dataset = train_dataset.map(
-        prepare_dataset, remove_columns=train_dataset.column_names
+        lambda batch: prepare_dataset(batch=batch, processor=processor),
+        remove_columns=train_dataset.column_names,
     )
     test_dataset = test_dataset.map(
-        prepare_dataset, remove_columns=test_dataset.column_names
+        lambda batch: prepare_dataset(batch=batch, processor=processor),
+        remove_columns=test_dataset.column_names,
     )
 
     data_collator = DataCollatorCTCWithPadding(processor=processor, padding=True)
@@ -251,12 +238,12 @@ if __name__ == "__main__":
     wer_metric = load_metric("wer")
 
     model = Wav2Vec2ForCTC.from_pretrained(
-        hf_full_name,
-        attention_dropout=0.0,  # TODO: use hparams for these, so it's easily reusable in hparams search
-        hidden_dropout=0.0,
-        feat_proj_dropout=0.0,
-        mask_time_prob=0.05,
-        layerdrop=0.0,
+        config["model_name"],
+        attention_dropout=config["attention_dropout"],
+        hidden_dropout=config["hidden_dropout"],
+        feat_proj_dropout=config["feat_proj_dropout"],
+        mask_time_prob=config["mask_time_prob"],
+        layerdrop=config["layerdrop"],
         ctc_loss_reduction="mean",
         pad_token_id=processor.tokenizer.pad_token_id,
         vocab_size=len(processor.tokenizer),
@@ -265,24 +252,38 @@ if __name__ == "__main__":
     model.freeze_feature_extractor()  # TODO: perhaps not always we want to do it
 
     training_args = TrainingArguments(
-        output_dir=repo_name,  # TODO: use hparams for these, so it's easily reusable in hparams search
+        output_dir=config["output_dir"],
         group_by_length=True,
-        per_device_train_batch_size=16,
+        per_device_train_batch_size=config["batch_size"],
         gradient_accumulation_steps=2,
         evaluation_strategy="steps",
-        num_train_epochs=30,
+        num_train_epochs=config["num_epochs"],
         gradient_checkpointing=True,
         fp16=True,
-        save_steps=200,
-        eval_steps=200,
-        logging_steps=200,
-        learning_rate=3e-4,
-        warmup_steps=500,
-        push_to_hub=True,
+        save_steps=config["save_steps"],
+        eval_steps=config["eval_steps"],
+        logging_steps=config["logging_steps"],
+        learning_rate=config["learning_rate"],
+        warmup_steps=config["warmup_steps"],
         save_total_limit=5,
+        push_to_hub=config["push_to_hub"],
         load_best_model_at_end=True,
         metric_for_best_model="wer",
     )
+
+    def compute_metrics(pred):
+        pred_logits = pred.predictions
+        pred_ids = np.argmax(pred_logits, axis=-1)
+
+        pred.label_ids[pred.label_ids == -100] = processor.tokenizer.pad_token_id
+
+        pred_str = processor.batch_decode(pred_ids)
+        # we do not want to group tokens when computing the metrics
+        label_str = processor.batch_decode(pred.label_ids, group_tokens=False)
+
+        wer = wer_metric.compute(predictions=pred_str, references=label_str)
+
+        return {"wer": wer}
 
     trainer = Trainer(
         model=model,
@@ -296,4 +297,30 @@ if __name__ == "__main__":
 
     trainer.train()
 
-    trainer.push_to_hub()
+    if config["push_to_hub"]:
+        trainer.push_to_hub()
+
+    return trainer.evaluate()
+
+
+if __name__ == "__main__":
+    config = {
+        "data_path": "/teamspace/uploads/uaspeechall/data",
+        "model_name": "facebook/wav2vec2-large-xls-r-300m",
+        "output_dir": "wav2vec2-large-xls-r-300m-dysarthria-big-dataset",
+        "batch_size": 16,
+        "num_epochs": 30,
+        "save_steps": 200,
+        "eval_steps": 200,
+        "logging_steps": 200,
+        "learning_rate": 3e-4,
+        "warmup_steps": 500,
+        "push_to_hub": True,
+        "attention_dropout": 0.0,
+        "hidden_dropout": 0.0,
+        "feat_proj_dropout": 0.0,
+        "mask_time_prob": 0.05,
+        "layerdrop": 0.0,
+    }
+
+    train_model(config)
