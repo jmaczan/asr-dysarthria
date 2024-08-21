@@ -42,7 +42,9 @@ def auth_into_hf():
     folder.save_token(token)
 
 
-def load_uaspeech_from_parquets(directory_path="/teamspace/uploads/uaspeechall/data"):
+def load_uaspeech_from_parquets(
+    directory_path="/teamspace/uploads/uaspeechall/data", num_files=1, chunk_size=10000
+):
     import pyarrow.parquet as pq
     from datasets import Dataset, concatenate_datasets
     import glob
@@ -53,21 +55,20 @@ def load_uaspeech_from_parquets(directory_path="/teamspace/uploads/uaspeechall/d
         for i in range(0, num_rows, chunk_size):
             yield table.slice(i, min(chunk_size, num_rows - i)).to_batches()[0]
 
-    def process_parquet_files(directory_path, chunk_size=10000):
+    def process_parquet_files(directory_path, num_files, chunk_size=10000):
         parquet_files = glob.glob(f"{directory_path}/*.parquet")
-        for file in parquet_files:
+        for file in parquet_files[
+            :num_files
+        ]:  # Only process the specified number of files
             print(f"Processing file: {file}")
             table = pq.read_table(file, memory_map=True)
             for chunk in chunk_generator(table, chunk_size):
                 yield Dataset(pa.Table.from_batches([chunk]))
 
     all_datasets = []
-
-    for chunk_dataset in process_parquet_files(directory_path):
-        # Process each chunk here
-        # For example, you can apply your transformations:
-        # transformed_chunk = chunk_dataset.map(your_transform_function)
+    for chunk_dataset in process_parquet_files(directory_path, num_files, chunk_size):
         all_datasets.append(chunk_dataset)
+
     # Combine all chunks into a single dataset
     return concatenate_datasets(all_datasets)
 

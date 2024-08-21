@@ -19,7 +19,7 @@ from datasets import load_metric
 def objective(trial):
     # Authentication and data loading
     auth_into_hf()
-    dataset = load_uaspeech_from_parquets()
+    dataset = load_uaspeech_from_parquets(config["data_path"], num_files=1)
     dataset = dataset.train_test_split(test_size=0.2)
 
     train_dataset = dataset["train"]
