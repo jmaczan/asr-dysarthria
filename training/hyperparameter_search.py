@@ -16,8 +16,12 @@ from train import (
     compute_metrics,
     Trainer,
 )
+from training import logger
 from training.hparams_search_config import config
 from metric import asr_metric
+from training.monitor_callback import MonitorCallback
+from training.resource_monitor import ResourceMonitor
+from training.status_updater import StatusUpdater
 
 
 def objective(trial):
@@ -125,7 +129,10 @@ def run_optimization():
         load_if_exists=True,
         sampler=TPESampler(seed=10),
     )
-    study.optimize(objective, n_trials=20, timeout=3600)
+    monitor_callback = MonitorCallback(logger=logger)
+    status_updater = StatusUpdater(study, logger)
+    status_updater.start()
+    study.optimize(objective, n_trials=20, timeout=3600, callbacks=[monitor_callback])
 
     print("Best trial:")
     trial = study.best_trial
@@ -136,7 +143,16 @@ def run_optimization():
         print("    {}: {}".format(key, value))
 
     study.trials_dataframe().to_csv("optimization_results.csv")
+    status_updater.stop()
+    status_updater.join()
 
 
 if __name__ == "__main__":
-    run_optimization()
+    resource_monitor = ResourceMonitor(logger=logger)
+    resource_monitor.start()
+
+    try:
+        run_optimization()
+    finally:
+        resource_monitor.stop()
+        resource_monitor.join()
