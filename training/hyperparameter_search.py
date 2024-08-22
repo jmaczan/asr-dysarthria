@@ -1,6 +1,7 @@
 import torch
 import optuna
 from optuna.pruners import MedianPruner
+from optuna.samplers import TPESampler
 from transformers import Wav2Vec2ForCTC, TrainingArguments
 from train import (
     auth_into_hf,
@@ -118,12 +119,13 @@ def objective(trial):
 def run_optimization():
     study = optuna.create_study(
         direction="minimize",
-        pruner=MedianPruner(),
+        pruner=MedianPruner(n_startup_trials=5, n_warmup_steps=200, interval_steps=20),
         storage="sqlite:///optuna.db",
         study_name="wav2vec2_optimization",
         load_if_exists=True,
+        sampler=TPESampler(seed=10),
     )
-    study.optimize(objective, n_trials=20)
+    study.optimize(objective, n_trials=20, timeout=3600)
 
     print("Best trial:")
     trial = study.best_trial
@@ -132,6 +134,8 @@ def run_optimization():
     print("  Params: ")
     for key, value in trial.params.items():
         print("    {}: {}".format(key, value))
+
+    study.trials_dataframe().to_csv("optimization_results.csv")
 
 
 if __name__ == "__main__":
