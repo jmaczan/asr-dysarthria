@@ -1,4 +1,6 @@
+import torch
 import optuna
+from optuna.pruners import MedianPruner
 from transformers import Wav2Vec2ForCTC, TrainingArguments
 from train import (
     auth_into_hf,
@@ -13,102 +15,114 @@ from train import (
     compute_metrics,
     Trainer,
 )
-from datasets import load_metric
+from config import config
 
 
 def objective(trial):
-    # Authentication and data loading
-    auth_into_hf()
-    dataset = load_uaspeech_from_parquets(config["data_path"], num_files=1)
-    dataset = dataset.train_test_split(test_size=0.2)
+    try:
 
-    train_dataset = dataset["train"]
-    test_dataset = dataset["test"]
+        auth_into_hf()
+        dataset = load_uaspeech_from_parquets(
+            config["data_path"], num_files=config["hparam_search_num_files"]
+        )
+        dataset = dataset.train_test_split(test_size=0.2)
 
-    train_dataset = train_dataset.map(remove_special_characters)
-    test_dataset = test_dataset.map(remove_special_characters)
+        train_dataset = dataset["train"]
+        test_dataset = dataset["test"]
 
-    build_vocab_json(train_dataset, test_dataset)
+        train_dataset = train_dataset.map(remove_special_characters)
+        test_dataset = test_dataset.map(remove_special_characters)
 
-    tokenizer = build_tokenizer()
-    feature_extractor = build_feature_extractor()
-    processor = build_processor(tokenizer, feature_extractor)
+        build_vocab_json(train_dataset, test_dataset)
 
-    train_dataset = train_dataset.map(
-        prepare_dataset, remove_columns=train_dataset.column_names
-    )
-    test_dataset = test_dataset.map(
-        prepare_dataset, remove_columns=test_dataset.column_names
-    )
+        tokenizer = build_tokenizer()
+        feature_extractor = build_feature_extractor()
+        processor = build_processor(tokenizer, feature_extractor)
 
-    data_collator = DataCollatorCTCWithPadding(processor=processor, padding=True)
+        train_dataset = train_dataset.map(
+            prepare_dataset, remove_columns=train_dataset.column_names
+        )
+        test_dataset = test_dataset.map(
+            prepare_dataset, remove_columns=test_dataset.column_names
+        )
 
-    wer_metric = load_metric("wer")
+        data_collator = DataCollatorCTCWithPadding(processor=processor, padding=True)
 
-    # Hyperparameters to optimize
-    learning_rate = trial.suggest_loguniform("learning_rate", 1e-5, 1e-3)
-    attention_dropout = trial.suggest_uniform("attention_dropout", 0.0, 0.5)
-    hidden_dropout = trial.suggest_uniform("hidden_dropout", 0.0, 0.5)
-    feat_proj_dropout = trial.suggest_uniform("feat_proj_dropout", 0.0, 0.5)
-    mask_time_prob = trial.suggest_uniform("mask_time_prob", 0.0, 0.5)
-    layerdrop = trial.suggest_uniform("layerdrop", 0.0, 0.5)
-    warmup_steps = trial.suggest_int("warmup_steps", 100, 1000)
+        learning_rate = trial.suggest_loguniform("learning_rate", 1e-5, 1e-3)
+        attention_dropout = trial.suggest_uniform("attention_dropout", 0.0, 0.5)
+        hidden_dropout = trial.suggest_uniform("hidden_dropout", 0.0, 0.5)
+        feat_proj_dropout = trial.suggest_uniform("feat_proj_dropout", 0.0, 0.5)
+        mask_time_prob = trial.suggest_uniform("mask_time_prob", 0.0, 0.1)
+        layerdrop = trial.suggest_uniform("layerdrop", 0.0, 0.5)
+        warmup_steps = trial.suggest_int("warmup_steps", 100, 1000)
 
-    model = Wav2Vec2ForCTC.from_pretrained(
-        "facebook/wav2vec2-large-xls-r-300m",
-        attention_dropout=attention_dropout,
-        hidden_dropout=hidden_dropout,
-        feat_proj_dropout=feat_proj_dropout,
-        mask_time_prob=mask_time_prob,
-        layerdrop=layerdrop,
-        ctc_loss_reduction="mean",
-        pad_token_id=processor.tokenizer.pad_token_id,
-        vocab_size=len(processor.tokenizer),
-    )
+        model = Wav2Vec2ForCTC.from_pretrained(
+            config["model_name"],
+            attention_dropout=attention_dropout,
+            hidden_dropout=hidden_dropout,
+            feat_proj_dropout=feat_proj_dropout,
+            mask_time_prob=mask_time_prob,
+            layerdrop=layerdrop,
+            ctc_loss_reduction="mean",
+            pad_token_id=processor.tokenizer.pad_token_id,
+            vocab_size=len(processor.tokenizer),
+        )
 
-    model.freeze_feature_extractor()
+        model.freeze_feature_extractor()
 
-    training_args = TrainingArguments(
-        output_dir="./results",
-        group_by_length=True,
-        per_device_train_batch_size=16,
-        gradient_accumulation_steps=2,
-        evaluation_strategy="steps",
-        num_train_epochs=5,  # Reduced for faster trials
-        gradient_checkpointing=True,
-        fp16=True,
-        save_steps=500,
-        eval_steps=500,
-        logging_steps=500,
-        learning_rate=learning_rate,
-        warmup_steps=warmup_steps,
-        save_total_limit=2,
-        push_to_hub=False,
-        load_best_model_at_end=True,
-        metric_for_best_model="wer",
-    )
+        training_args = TrainingArguments(
+            output_dir=config["output_dir"],
+            group_by_length=True,
+            per_device_train_batch_size=config["batch_size"],
+            gradient_accumulation_steps=2,
+            evaluation_strategy="steps",
+            num_train_epochs=config["num_epochs"],
+            gradient_checkpointing=True,
+            fp16=True,
+            save_steps=config["save_steps"],
+            eval_steps=config["eval_steps"],
+            logging_steps=config["logging_steps"],
+            learning_rate=learning_rate,
+            warmup_steps=warmup_steps,
+            save_total_limit=2,
+            push_to_hub=config["push_to_hub"],
+            load_best_model_at_end=True,
+            metric_for_best_model="wer",
+        )
 
-    trainer = Trainer(
-        model=model,
-        data_collator=data_collator,
-        args=training_args,
-        compute_metrics=compute_metrics,
-        train_dataset=train_dataset,
-        eval_dataset=test_dataset,
-        tokenizer=processor.feature_extractor,
-    )
+        trainer = Trainer(
+            model=model,
+            data_collator=data_collator,
+            args=training_args,
+            compute_metrics=compute_metrics,
+            train_dataset=train_dataset,
+            eval_dataset=test_dataset,
+            tokenizer=processor.feature_extractor,
+        )
 
-    trainer.train()
+        trainer.train()
 
-    # Evaluate the model
-    eval_result = trainer.evaluate()
+        eval_result = trainer.evaluate()
 
-    return eval_result["eval_wer"]
+        result = eval_result["eval_wer"]
+        del model, trainer
+        torch.cuda.empty_cache()
+
+        return result
+    except Exception as e:
+        print(e)
+        return float("inf")
 
 
 def run_optimization():
-    study = optuna.create_study(direction="minimize")
-    study.optimize(objective, n_trials=20)  # Adjust the number of trials as needed
+    study = optuna.create_study(
+        direction="minimize",
+        pruner=MedianPruner(),
+        storage="sqlite:///optuna.db",
+        study_name="wav2vec2_optimization",
+        load_if_exists=True,
+    )
+    study.optimize(objective, n_trials=20)
 
     print("Best trial:")
     trial = study.best_trial
