@@ -16,6 +16,7 @@ from train import (
     Trainer,
 )
 from config import config
+from metric import asr_metric
 
 
 def objective(trial):
@@ -104,7 +105,7 @@ def objective(trial):
 
         eval_result = trainer.evaluate()
 
-        result = eval_result["eval_wer"]
+        result = eval_result[asr_metric]
         del model, trainer
         torch.cuda.empty_cache()
 
