@@ -15,7 +15,7 @@ from train import (
     compute_metrics,
     Trainer,
 )
-from config import config
+from training.hparams_search_config import config
 from metric import asr_metric
 
 

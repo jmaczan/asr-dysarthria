@@ -25,12 +25,13 @@ import torch
 from dataclasses import dataclass
 from typing import Dict, List, Union
 import numpy as np
+from training.config import config
 
 # TODO: make them argparse params
 user_name = "jmaczan"
 repo_name = "wav2vec2-large-xls-r-300m-dysarthria-big-dataset"
 hf_full_name = f"{user_name}/{repo_name}"
-data_path = directory_path = "/teamspace/uploads/uaspeechall/data"
+data_path = directory_path = config["data_path"]
 
 
 def auth_into_hf():
@@ -43,7 +44,7 @@ def auth_into_hf():
 
 
 def load_uaspeech_from_parquets(
-    directory_path="/teamspace/uploads/uaspeechall/data", num_files=1, chunk_size=10000
+    directory_path=config["data_path"], num_files=1, chunk_size=10000
 ):
     import pyarrow.parquet as pq
     from datasets import Dataset, concatenate_datasets
@@ -305,23 +306,4 @@ def train_model(config):
 
 
 if __name__ == "__main__":
-    config = {
-        "data_path": "/teamspace/uploads/uaspeechall/data",
-        "model_name": "facebook/wav2vec2-large-xls-r-300m",
-        "output_dir": "wav2vec2-large-xls-r-300m-dysarthria-big-dataset",
-        "batch_size": 16,
-        "num_epochs": 30,
-        "save_steps": 200,
-        "eval_steps": 200,
-        "logging_steps": 200,
-        "learning_rate": 3e-4,
-        "warmup_steps": 500,
-        "push_to_hub": True,
-        "attention_dropout": 0.0,
-        "hidden_dropout": 0.0,
-        "feat_proj_dropout": 0.0,
-        "mask_time_prob": 0.05,
-        "layerdrop": 0.0,
-    }
-
     train_model(config)
