@@ -25,7 +25,7 @@ import torch
 from dataclasses import dataclass
 from typing import Dict, List, Union
 import numpy as np
-from training.config import config
+from .config import config
 
 # TODO: make them argparse params
 user_name = "jmaczan"
@@ -205,6 +205,20 @@ class DataCollatorCTCWithPadding:
 
         return batch
 
+def compute_metrics(pred):
+    pred_logits = pred.predictions
+    pred_ids = np.argmax(pred_logits, axis=-1)
+
+    pred.label_ids[pred.label_ids == -100] = processor.tokenizer.pad_token_id
+
+    pred_str = processor.batch_decode(pred_ids)
+    # we do not want to group tokens when computing the metrics
+    label_str = processor.batch_decode(pred.label_ids, group_tokens=False)
+
+    wer = wer_metric.compute(predictions=pred_str, references=label_str)
+
+    return {"wer": wer}
+
 
 def train_model(config):
     auth_into_hf()
@@ -272,20 +286,6 @@ def train_model(config):
         load_best_model_at_end=True,
         metric_for_best_model="wer",
     )
-
-    def compute_metrics(pred):
-        pred_logits = pred.predictions
-        pred_ids = np.argmax(pred_logits, axis=-1)
-
-        pred.label_ids[pred.label_ids == -100] = processor.tokenizer.pad_token_id
-
-        pred_str = processor.batch_decode(pred_ids)
-        # we do not want to group tokens when computing the metrics
-        label_str = processor.batch_decode(pred.label_ids, group_tokens=False)
-
-        wer = wer_metric.compute(predictions=pred_str, references=label_str)
-
-        return {"wer": wer}
 
     trainer = Trainer(
         model=model,

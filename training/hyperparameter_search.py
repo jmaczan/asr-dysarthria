@@ -4,7 +4,7 @@ from optuna.pruners import MedianPruner
 from optuna.samplers import TPESampler
 from optuna.integration.wandb import WeightsAndBiasesCallback
 from transformers import Wav2Vec2ForCTC, TrainingArguments
-from train import (
+from .train import (
     auth_into_hf,
     load_uaspeech_from_parquets,
     remove_special_characters,
@@ -17,12 +17,12 @@ from train import (
     compute_metrics,
     Trainer,
 )
-from training import logger
-from training.hparams_search_config import config
-from metric import asr_metric
-from training.monitor_callback import MonitorCallback
-from training.resource_monitor import ResourceMonitor
-from training.status_updater import StatusUpdater
+from .logger import logger
+from .hparams_search_config import config
+from .metric import asr_metric
+from .monitor_callback import MonitorCallback
+from .resource_monitor import ResourceMonitor
+from .status_updater import StatusUpdater
 import wandb
 from dotenv import load_dotenv
 import os
