@@ -12,7 +12,6 @@ from .train import (
     build_tokenizer,
     build_feature_extractor,
     build_processor,
-    prepare_dataset,
     DataCollatorCTCWithPadding,
     compute_metrics,
     Trainer,
@@ -41,7 +40,6 @@ def setup_wandb():
 
     wandb.login(key=wandb_api_key)
 
-
 def objective(trial):
     with wandb.init(project=wandb_project, config=trial.params, reinit=True) as run:
         try:
@@ -63,6 +61,19 @@ def objective(trial):
             tokenizer = build_tokenizer()
             feature_extractor = build_feature_extractor()
             processor = build_processor(tokenizer, feature_extractor)
+
+            def prepare_dataset(batch):
+                audio = batch["audio"]
+
+                # batched output is "un-batched"
+                batch["input_values"] = processor(
+                    audio["array"], sampling_rate=audio["sampling_rate"]
+                ).input_values[0]
+                batch["input_length"] = len(batch["input_values"])
+
+                with processor.as_target_processor():
+                    batch["labels"] = processor(batch["transcription"]).input_ids
+                return batch
 
             train_dataset = train_dataset.map(
                 prepare_dataset, remove_columns=train_dataset.column_names

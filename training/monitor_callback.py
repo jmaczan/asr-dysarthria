@@ -9,7 +9,7 @@ class MonitorCallback:
     def __call__(self, study, trial):
         if trial.state == TrialState.COMPLETE:
             self.logger.info(
-                f"Trial {trial.number} finished with value: {trial.value} and parameters: {trial.parameters}"
+                f"Trial {trial.number} finished with value: {trial.value} and parameters: {trial.params}"
             )
         elif trial.state == TrialState.PRUNED:
             self.logger.info(f"Trial {trial.number} pruned.")

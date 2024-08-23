@@ -1,6 +1,6 @@
 config = {
     "data_path": "/teamspace/uploads/uaspeechall/data",
-    "model_name": "facebook/wav2vec2-large-xls-r-300m",
+    "model_name": "facebook/wav2vec2-xls-r-300m",
     "output_dir": "wav2vec2-large-xls-r-300m-dysarthria-big-dataset",
     "batch_size": 16,
     "num_epochs": 30,
