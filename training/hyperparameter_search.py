@@ -145,22 +145,24 @@ def objective(trial):
 
             eval_result = trainer.evaluate()
 
+            result = asr_metric(eval_result)
+
             wandb.log(
                 {
                     "eval_loss": eval_result["eval_loss"],
                     "eval_wer": eval_result["eval_wer"],
+                    "asr_metric": result
                 }
             )
-
-            result = eval_result[asr_metric]
             del model, trainer
             torch.cuda.empty_cache()
 
             return result
         except Exception as e:
+            print("---- Exception in objective occured! ----")
             print(e)
             wandb.log({"error": str(e)})
-            return float("inf")
+            raise
 
 
 def run_optimization():
