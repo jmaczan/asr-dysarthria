@@ -13,7 +13,6 @@ from .train import (
     build_feature_extractor,
     build_processor,
     DataCollatorCTCWithPadding,
-    compute_metrics,
     Trainer,
 )
 from .logger import logger
@@ -26,6 +25,8 @@ import wandb
 from dotenv import load_dotenv
 import os
 from functools import partial
+import numpy as np
+from datasets import load_metric
 
 load_dotenv()
 
@@ -41,6 +42,7 @@ def setup_wandb():
 
     wandb.login(key=wandb_api_key)
 
+
 def prepare_dataset(processor, batch):
     audio = batch["audio"]
 
@@ -53,6 +55,7 @@ def prepare_dataset(processor, batch):
     with processor.as_target_processor():
         batch["labels"] = processor(batch["transcription"]).input_ids
     return batch
+
 
 def objective(trial):
     with wandb.init(project=wandb_project, config=trial.params, reinit=True) as run:
@@ -79,7 +82,8 @@ def objective(trial):
             prepare_dataset_with_processor = partial(prepare_dataset, processor)
 
             train_dataset = train_dataset.map(
-                prepare_dataset_with_processor, remove_columns=train_dataset.column_names
+                prepare_dataset_with_processor,
+                remove_columns=train_dataset.column_names,
             )
             test_dataset = test_dataset.map(
                 prepare_dataset_with_processor, remove_columns=test_dataset.column_names
@@ -128,8 +132,37 @@ def objective(trial):
                 save_total_limit=2,
                 push_to_hub=config["push_to_hub"],
                 load_best_model_at_end=True,
-                metric_for_best_model="wer",
+                metric_for_best_model="asr_metric",
+                greater_is_better=False,
             )
+
+            wer_metric = load_metric("wer")
+
+            def compute_metrics(pred):
+                pred_logits = pred.predictions
+                pred_ids = np.argmax(pred_logits, axis=-1)
+
+                pred.label_ids[pred.label_ids == -100] = (
+                    processor.tokenizer.pad_token_id
+                )
+
+                pred_str = processor.batch_decode(pred_ids)
+                # we do not want to group tokens when computing the metrics
+                label_str = processor.batch_decode(pred.label_ids, group_tokens=False)
+
+                wer = wer_metric.compute(predictions=pred_str, references=label_str)
+
+                # Calculate the loss (assuming it's available in pred.loss)
+                loss = pred.loss.mean().item()
+
+                # Create a dictionary with both WER and loss
+                eval_result = {"eval_wer": wer, "eval_loss": loss}
+
+                # Calculate the custom ASR metric
+                custom_metric = asr_metric(eval_result)
+
+                # Return all metrics
+                return {"wer": wer, "loss": loss, "asr_metric": custom_metric}
 
             trainer = Trainer(
                 model=model,
@@ -151,7 +184,7 @@ def objective(trial):
                 {
                     "eval_loss": eval_result["eval_loss"],
                     "eval_wer": eval_result["eval_wer"],
-                    "asr_metric": result
+                    "asr_metric": eval_result["asr_metric"],
                 }
             )
             del model, trainer
