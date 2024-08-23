@@ -5,3 +5,6 @@ model.safetensors
 *.wav
 wandb/
 optuna.db
+results/
+logs/
+optimization_results.csv
