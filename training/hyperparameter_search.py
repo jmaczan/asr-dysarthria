@@ -17,7 +17,6 @@ from .train import (
 )
 from .logger import logger
 from .hparams_search_config import config
-from .metric import asr_metric
 from .monitor_callback import MonitorCallback
 from .resource_monitor import ResourceMonitor
 from .status_updater import StatusUpdater
@@ -132,40 +131,14 @@ def objective(trial):
                 save_total_limit=2,
                 push_to_hub=config["push_to_hub"],
                 load_best_model_at_end=True,
-                metric_for_best_model="asr_metric",
+                metric_for_best_model="loss",
                 greater_is_better=False,
             )
-
-            wer_metric = load_metric("wer")
-
-            def compute_metrics(pred):
-                pred_logits = pred.predictions
-                pred_ids = np.argmax(pred_logits, axis=-1)
-
-                pred.label_ids[pred.label_ids == -100] = (
-                    processor.tokenizer.pad_token_id
-                )
-
-                pred_str = processor.batch_decode(pred_ids)
-                # we do not want to group tokens when computing the metrics
-                label_str = processor.batch_decode(pred.label_ids, group_tokens=False)
-
-                wer = wer_metric.compute(predictions=pred_str, references=label_str)
-               
-                # Create a dictionary with both WER and loss
-                eval_result = {"eval_wer": wer}
-
-                # Calculate the custom ASR metric
-                custom_metric = asr_metric(eval_result)
-
-                # Return all metrics
-                return {"wer": wer, "asr_metric": custom_metric}
 
             trainer = Trainer(
                 model=model,
                 data_collator=data_collator,
                 args=training_args,
-                compute_metrics=compute_metrics,
                 train_dataset=train_dataset,
                 eval_dataset=test_dataset,
                 tokenizer=processor.feature_extractor,
@@ -175,11 +148,11 @@ def objective(trial):
 
             eval_result = trainer.evaluate()
 
-            result = eval_result["eval_wer"]
+            result = eval_result["eval_loss"]
 
             wandb.log(
                 {
-                    "eval_wer": result,
+                    "eval_loss": result,
                 }
             )
             del model, trainer
@@ -208,7 +181,7 @@ def run_optimization():
     status_updater = StatusUpdater(study, logger)
 
     wandb_callback = WeightsAndBiasesCallback(
-        metric_name="asr_metric",
+        metric_name="loss",
         wandb_kwargs={
             "project": wandb_project,
             "name": wandb_name,
