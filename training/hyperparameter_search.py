@@ -151,18 +151,15 @@ def objective(trial):
                 label_str = processor.batch_decode(pred.label_ids, group_tokens=False)
 
                 wer = wer_metric.compute(predictions=pred_str, references=label_str)
-
-                # Calculate the loss (assuming it's available in pred.loss)
-                loss = pred.loss.mean().item()
-
+               
                 # Create a dictionary with both WER and loss
-                eval_result = {"eval_wer": wer, "eval_loss": loss}
+                eval_result = {"eval_wer": wer}
 
                 # Calculate the custom ASR metric
                 custom_metric = asr_metric(eval_result)
 
                 # Return all metrics
-                return {"wer": wer, "loss": loss, "asr_metric": custom_metric}
+                return {"wer": wer, "asr_metric": custom_metric}
 
             trainer = Trainer(
                 model=model,
@@ -178,13 +175,11 @@ def objective(trial):
 
             eval_result = trainer.evaluate()
 
-            result = asr_metric(eval_result)
+            result = eval_result["eval_wer"]
 
             wandb.log(
                 {
-                    "eval_loss": eval_result["eval_loss"],
-                    "eval_wer": eval_result["eval_wer"],
-                    "asr_metric": eval_result["asr_metric"],
+                    "eval_wer": result,
                 }
             )
             del model, trainer
