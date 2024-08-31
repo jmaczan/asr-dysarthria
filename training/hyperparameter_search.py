@@ -24,8 +24,6 @@ import wandb
 from dotenv import load_dotenv
 import os
 from functools import partial
-import numpy as np
-from datasets import load_metric
 
 load_dotenv()
 
