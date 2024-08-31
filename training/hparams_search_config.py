@@ -4,7 +4,7 @@ config = {
     "model_name": "facebook/wav2vec2-xls-r-300m",
     "output_dir": "./results",
     "batch_size": 16,
-    "num_epochs": 10,
+    "num_epochs": 30,
     "save_steps": 500,
     "eval_steps": 500,
     "logging_steps": 500,
