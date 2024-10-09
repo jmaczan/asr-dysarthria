@@ -117,7 +117,7 @@ If you use this repository in your research, please use the following citation:
 
 ```bibtex
 @misc{Maczan_ASR_Dysarthria_2024,
-  title = " Research on Automatic Speech Recognition for dysarthric speech ",
+  title = "Research on Automatic Speech Recognition for dysarthric speech",
   author = "{Maczan, Jędrzej Paweł}",
   howpublished = "\url{https://github.com/jmaczan/asr-dysarthria}",
   year = 2024,
